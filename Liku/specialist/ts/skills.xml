@@ -1,0 +1,4 @@
+<skills>
+  <skill id="refactor_ts" privilege="specialist" description="Perform a TypeScript refactor grounded to repo files" />
+  <skill id="check_types" privilege="specialist" description="Run TypeScript typechecking and interpret results" />
+</skills>

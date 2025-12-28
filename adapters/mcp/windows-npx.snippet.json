@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "liku": {
+      "command": "npx",
+      "args": [
+        "--yes",
+        "liku-engine-mcp"
+      ],
+      "env": {
+        "LIKU_REPO_ROOT": "C:\\\\path\\\\to\\\\your\\\\repo"
+      }
+    }
+  }
+}

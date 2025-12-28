@@ -1,0 +1,5 @@
+<skills>
+  <skill id="log_error" privilege="user" description="Append an error record to LikuErrors.md" />
+  <skill id="read_todo" privilege="user" description="Read and interpret todo.md" />
+  <skill id="escalate" privilege="root" description="Request root-only actions per policy" />
+</skills>

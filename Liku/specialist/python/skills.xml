@@ -1,0 +1,4 @@
+<skills>
+  <skill id="refactor_py" privilege="specialist" description="Perform a Python refactor grounded to repo files" />
+  <skill id="pytest" privilege="specialist" description="Run pytest and interpret results" />
+</skills>

@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "liku": {
+      "command": "liku-mcp",
+      "args": [],
+      "env": {
+        "LIKU_REPO_ROOT": "C:\\\\path\\\\to\\\\your\\\\repo"
+      }
+    }
+  }
+}
+
