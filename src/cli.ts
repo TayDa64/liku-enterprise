@@ -6,9 +6,13 @@ import process from "node:process";
 import chalk from "chalk";
 import { LikuEngine } from "./liku/engine.js";
 import { startHttpServer } from "./server/http.js";
+import { startEnterpriseHttpServer } from "./server/enterpriseHttp.js";
 import { Orchestrator } from "./liku/orchestrator/orchestrator.js";
 import { createLlmClientFromEnv } from "./liku/llm/index.js";
 import type { OrchestrationResult } from "./liku/orchestrator/types.js";
+import type { OIDCConfig } from "./enterprise/auth/index.js";
+import type { AuditConfig } from "./enterprise/audit/index.js";
+import type { OPAConfig } from "./enterprise/policy/index.js";
 
 /**
  * Exit codes for CLI commands.
@@ -42,12 +46,70 @@ program
   .description("Run the Liku HTTP server (A2A-style endpoints)")
   .option("--repo <path>", "Repo root (defaults to cwd)")
   .option("--port <port>", "Port", "8765")
+  .option("--enterprise", "Enable enterprise features (auth, audit, policy)", false)
+  .option("--oidc-issuer <url>", "OIDC issuer URL for token validation")
+  .option("--oidc-audience <aud>", "Expected JWT audience")
+  .option("--tenant-mode <mode>", "Tenant mode: single or multi", "single")
+  .option("--audit-path <path>", "Audit log SQLite path (defaults to :memory:)")
+  .option("--policy-mode <mode>", "Policy mode: embedded or remote", "embedded")
+  .option("--policy-url <url>", "Remote OPA server URL")
   .action(async (opts) => {
     const repoRoot = path.resolve(opts.repo ?? process.cwd());
     const port = Number(opts.port);
     const engine = new LikuEngine({ repoRoot });
     await engine.init();
-    await startHttpServer({ engine, port });
+
+    if (opts.enterprise) {
+      // Build enterprise configuration
+      const oidcConfig: OIDCConfig | undefined = opts.oidcIssuer ? {
+        issuerUrl: opts.oidcIssuer,
+        audience: opts.oidcAudience ?? "liku-enterprise",
+        jwksUri: `${opts.oidcIssuer}/.well-known/jwks.json`,
+        algorithms: ["RS256"],
+        clockToleranceSeconds: 30,
+        cacheJwksSeconds: 300
+      } : undefined;
+
+      const auditConfig: AuditConfig = {
+        storage: "sqlite",
+        dbPath: opts.auditPath,
+        hashAlgorithm: "sha256",
+        retentionDays: 0,
+        enableBatching: false,
+        batchIntervalMs: 1000,
+        maxBatchSize: 100
+      };
+
+      const policyConfig: OPAConfig = opts.policyMode === "remote" ? {
+        mode: "remote",
+        serverUrl: opts.policyUrl ?? "http://localhost:8181",
+        defaultPackage: "liku.authz",
+        cacheTtlSeconds: 60,
+        timeoutMs: 1000,
+        enableLogging: true
+      } : {
+        mode: "embedded",
+        defaultPackage: "liku.authz",
+        cacheTtlSeconds: 60,
+        timeoutMs: 1000,
+        enableLogging: true
+      };
+
+      await startEnterpriseHttpServer({
+        engine,
+        port,
+        maxConcurrentTasks: 5,
+        queueTimeoutMs: 30_000,
+        enterprise: {
+          enabled: true,
+          oidc: oidcConfig,
+          audit: auditConfig,
+          policy: policyConfig
+        }
+      });
+    } else {
+      await startHttpServer({ engine, port });
+    }
   });
 
 program
